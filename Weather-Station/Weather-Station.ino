@@ -17,67 +17,75 @@
 //          2.5 -- C2
 //          2.4 -- D2  
 //          1.3 -- Push Button
+#include <Wire.h>
+//#include<driverlib.h>
+//#define a_1 P1_2
+//#define b_1 P2_3
+//#define c_1 P1_4
+//#define d_1 P1_5
 
-#define a_1 P1_2
-#define b_1 P2_3
-#define c_1 P1_4
-#define d_1 P1_5
+//#define a_2 P2_0
+//#define b_2 P1_7
+//#define c_2 P2_5
+//#define d_2 P2_4
 
-#define a_2 P2_0
-#define b_2 P1_7
-#define c_2 P2_5
-#define d_2 P2_4
-
-#define UVInd P1_0
-#define TEMPInd P1_6
-
-#define pushbutton P1_3
-#define analogInPin P1_1
+//#define pushbutton P1_3
+//#define analogInPin P1_1
 // TUNING VARIABLE
 // Range: 0 to 10
 float scale = 0.9; // Increase for less lights, decrease for more lights
 
 int voltage = 0;  // Read value from the analog input pin
-int disp_value = 0; //Value to display on the 7-seg-display
-#include <Wire.h>
+int disp_value = 99; //Value to display on the 7-seg-display
+
+int a_1 = P1_2;
+int b_1 = P2_3;
+int c_1 = P1_4;
+int d_1 = P1_5;
+
+int a_2 = P2_0;
+int b_2 = P1_7;
+int c_2 = P2_5;
+int d_2 = P2_4;
+
+int UVInd = P1_0;
+int TEMPInd = P1_6;
+int pushbutton = P1_3;
+int analogInPin = P1_1;
 
 volatile int flag = LOW;
+volatile int current_mode = TEMPInd;
 int thermo_address = 72; //I2C Address of the device
 byte read_temp_command = 0x00; //Command to be sent to the thermometer
 void setup() {
-  Serial.begin(9600); 
-  Serial.println("Serial Started");
+  delay(100);
   Wire.begin(); //Start wire library
-  Serial.println("Wire Started");
-
-  //Pin Modes for first BCD decoder
+  delay(100);
   pinMode(a_1, OUTPUT);
   pinMode(b_1, OUTPUT);
   pinMode(c_1, OUTPUT);
   pinMode(d_1, OUTPUT);
-
-  //Pin modes for second BCD decoder
   pinMode(a_2, OUTPUT);
   pinMode(b_2, OUTPUT);
   pinMode(c_2, OUTPUT);
   pinMode(d_2, OUTPUT);
-
   pinMode(UVInd, OUTPUT);
   pinMode(TEMPInd, OUTPUT);
-  
   digitalWrite(TEMPInd,HIGH);
   digitalWrite(UVInd,LOW);
-  
-  digitalWrite(pushbutton,INPUT_PULLUP);
+  pinMode(pushbutton,INPUT_PULLUP);
   attachInterrupt(pushbutton,changeread,FALLING);
+  
 }
 
 void loop() 
 {
-  //Start Transmission
+  digitalWrite(current_mode,LOW);
+  delay(500);
   if(flag == LOW)
   {
-    change_display(1);
+    
+    //change_display(1);
     Wire.beginTransmission(thermo_address);
     //Write the command to the thermometer
     Wire.write(read_temp_command);
@@ -92,40 +100,31 @@ void loop()
 
     //Temperature that is read in celsius
     disp_value = Wire.read(); 
-
-    //Print info to the user
-    
-    /**Serial.print("Temperature: ");
-    Serial.print(c);
-    Serial.print("\n");**/
-    
   }
   if(flag == HIGH)
   {
      disp_value= analogRead(analogInPin);
      disp_value = disp_value / 11; //Make 1023 map to below 99
   }
-  if(flag == 3)
-  {
-    /**CODE FOR OTHER SENSOR**/
-  }
   change_display(disp_value);
-
 }
 /**Change what the thing will read**/
 void changeread()
 {
+  
   if(flag==HIGH)
   {
     flag = LOW;
     digitalWrite(TEMPInd,HIGH);
     digitalWrite(UVInd,LOW);
+    current_mode = TEMPInd;
   }
-  else
+  else if(flag==LOW)
   {
     flag = HIGH;
     digitalWrite(TEMPInd,LOW);
     digitalWrite(UVInd,HIGH);
+    current_mode = UVInd;
   }
 }
 void change_display(int disp_value)
@@ -134,6 +133,8 @@ void change_display(int disp_value)
   int ones = get_ones(disp_value);
   set_display_pins(a_1,b_1,c_1,d_1,ones);
   set_display_pins(a_2,b_2,c_2,d_2,tens);
+  digitalWrite(current_mode,HIGH);
+  delay(500);
 }
 int get_tens(int value)
 {
@@ -229,9 +230,11 @@ void set_display_pins(int a,int b,int c, int d,int value)
   {
     digitalWrite(a,LOW);
     digitalWrite(b,LOW);
-    digitalWrite(c,LOW);
+    digitalWrite(c,HIGH);
     digitalWrite(d,LOW);
   }
+  
+  return;
 }
 
 
