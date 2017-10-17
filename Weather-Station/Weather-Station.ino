@@ -72,7 +72,8 @@ void loop()
   
   if(flag == 0) //if flag is 0, display temp in C
   {  
-    digitalWrite(FTempInd,HIGH);
+    digitalWrite(FTempInd,HIGH); //turn on red led
+    digitalWrite(CTempInd,LOW); // turn off green led
     delay(150);
     //change_display(1);
     Wire.beginTransmission(thermo_address);
@@ -92,8 +93,10 @@ void loop()
   }
    if(flag == 1) // If flag is 1, display temp in F
    {
-        digitalWrite(CTempInd,HIGH);
+        digitalWrite(CTempInd,HIGH); //turn on green led
+        digitalWrite(FTempInd,LOW); //turn off red led
         delay(150);
+        
         //change_display(1);
         Wire.beginTransmission(thermo_address);
         //Write the command to the thermometer
@@ -116,11 +119,17 @@ void loop()
   
   if(flag == 2) //if flag is 2, display the UV index to the 7 segments
   {
+     //turn on both LEDs
+     digitalWrite(CTempInd,HIGH);
+     digitalWrite(FTempInd,HIGH); 
+     
      disp_value= analogRead(analogInPin);
      disp_value = disp_value / 11; //Map 0-1023 to within 0-99
   }
   
   change_display(disp_value);
+
+  delay(200); //allow time for the push button to stabilize
   
   interrupts();
 }
@@ -130,7 +139,7 @@ void changeread()
 {
   noInterrupts();
   if(flag == 2){
-    flag = 0;
+    flag = 0; //flag determines which output is read on the 7 segment display
   }
   
   else {
@@ -145,7 +154,6 @@ void change_display(int disp_value)
   int ones = get_ones(disp_value);
   set_display_pins(a_1,b_1,c_1,d_1,ones);
   set_display_pins(a_2,b_2,c_2,d_2,tens);
-  digitalWrite(FTempInd,LOW);
   delay(150);
 }
 
