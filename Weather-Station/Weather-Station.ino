@@ -1,4 +1,4 @@
-/**THIS CODE WILL NOT WORK WITH ENERGIA VERSION <18!!!**/
+/**THIS CODE WILL NOT WORK WITH ENERGIA VERSION less than 18!!!**/
 /**TOO ALLOW IT TO WORK WITH VERSION <18 YOU MUST CHANGE THE PIN DEFINITIONS FOR I2C TO 1.7/1.6 AND MOVE THE BCD ENCODER PINS AS NECESSARY**/
 
 //Pins used 2.1 -- SCL
@@ -18,19 +18,7 @@
 //          2.4 -- D2  
 //          1.3 -- Push Button
 #include <Wire.h>
-//#include<driverlib.h>
-//#define a_1 P1_2
-//#define b_1 P2_3
-//#define c_1 P1_4
-//#define d_1 P1_5
 
-//#define a_2 P2_0
-//#define b_2 P1_7
-//#define c_2 P2_5
-//#define d_2 P2_4
-
-//#define pushbutton P1_3
-//#define analogInPin P1_1
 // TUNING VARIABLE
 // Range: 0 to 10
 float scale = 0.9; // Increase for less lights, decrease for more lights
@@ -48,13 +36,13 @@ int b_2 = P1_7;
 int c_2 = P2_5;
 int d_2 = P2_4;
 
-int UVInd = P1_0;
-int TEMPInd = P1_6;
+int FTempInd = P1_0;
+int CTempInd = P1_6;
 int pushbutton = P1_3;
 int analogInPin = P1_1;
 
-volatile int flag = LOW;
-volatile int current_mode = TEMPInd;
+volatile int flag = 0;
+volatile int current_mode = CTempInd;
 int thermo_address = 72; //I2C Address of the device
 byte read_temp_command = 0x00; //Command to be sent to the thermometer
 void setup() {
@@ -69,10 +57,10 @@ void setup() {
   pinMode(b_2, OUTPUT);
   pinMode(c_2, OUTPUT);
   pinMode(d_2, OUTPUT);
-  pinMode(UVInd, OUTPUT);
-  pinMode(TEMPInd, OUTPUT);
-  digitalWrite(TEMPInd,HIGH);
-  digitalWrite(UVInd,LOW);
+  pinMode(FTempInd, OUTPUT);
+  pinMode(CTempInd, OUTPUT);
+  digitalWrite(CTempInd,HIGH);
+  digitalWrite(FTempInd,LOW);
   pinMode(pushbutton,INPUT_PULLUP);
   attachInterrupt(pushbutton,changeread,FALLING);
   
@@ -81,10 +69,10 @@ void setup() {
 void loop() 
 {
   digitalWrite(current_mode,LOW);
-  delay(500);
-  if(flag == LOW)
-  {
-    
+  delay(250);
+  
+  if(flag == 0) //if flag is 0, display temp in C
+  {  
     //change_display(1);
     Wire.beginTransmission(thermo_address);
     //Write the command to the thermometer
@@ -101,32 +89,53 @@ void loop()
     //Temperature that is read in celsius
     disp_value = Wire.read(); 
   }
-  if(flag == HIGH)
+   if(flag == 1) // If flag is 1, display temp in F
+   {
+        //change_display(1);
+        Wire.beginTransmission(thermo_address);
+        //Write the command to the thermometer
+        Wire.write(read_temp_command);
+       //End the transmission
+        Wire.endTransmission();
+    
+        //Request 1 byte from the thermo_address
+        Wire.requestFrom(thermo_address, 1);
+    
+        //While there is no info available
+        while (Wire.available() == 0);
+    
+        //Temperature that is read in celsius
+        disp_value = Wire.read(); 
+        
+        disp_value = (1.8 * disp_value) + 32;
+      }
+  
+  
+  if(flag == 2) //if flag is 2, display the UV index to the 7 segments
   {
      disp_value= analogRead(analogInPin);
-     disp_value = disp_value / 11; //Make 1023 map to below 99
+     disp_value = disp_value / 11; //Map 0-1023 to within 0-99
   }
+  
   change_display(disp_value);
+  
+  interrupts();
 }
-/**Change what the thing will read**/
+
+/**Change what the station will read**/
 void changeread()
 {
+  noInterrupts();
+  if(flag == 2){
+    flag = 0;
+  }
   
-  if(flag==HIGH)
-  {
-    flag = LOW;
-    digitalWrite(TEMPInd,HIGH);
-    digitalWrite(UVInd,LOW);
-    current_mode = TEMPInd;
+  else {
+  flag++;
   }
-  else if(flag==LOW)
-  {
-    flag = HIGH;
-    digitalWrite(TEMPInd,LOW);
-    digitalWrite(UVInd,HIGH);
-    current_mode = UVInd;
-  }
+  
 }
+
 void change_display(int disp_value)
 {
   int tens = get_tens(disp_value);
@@ -134,26 +143,19 @@ void change_display(int disp_value)
   set_display_pins(a_1,b_1,c_1,d_1,ones);
   set_display_pins(a_2,b_2,c_2,d_2,tens);
   digitalWrite(current_mode,HIGH);
-  delay(500);
+  delay(250);
 }
+
 int get_tens(int value)
 {
-  int result = 0;
-  while(value>9)
-  {
-    value -= 10;
-    result = result + 1;
-  }
-  return result;
+  return value/10;
 }
+
 int get_ones(int value)
 {
-  while(value>9)
-  {
-    value -= 10;  
-  }
-  return value;
+  return value%10;
 }
+
 void set_display_pins(int a,int b,int c, int d,int value)
 {
   if(value == 0)
@@ -236,6 +238,3 @@ void set_display_pins(int a,int b,int c, int d,int value)
   
   return;
 }
-
-
-
