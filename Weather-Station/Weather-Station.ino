@@ -59,8 +59,8 @@ void setup() {
   pinMode(d_2, OUTPUT);
   pinMode(FTempInd, OUTPUT);
   pinMode(CTempInd, OUTPUT);
-  digitalWrite(CTempInd,HIGH);
-  digitalWrite(FTempInd,LOW);
+  //digitalWrite(CTempInd,HIGH);
+  //digitalWrite(FTempInd,LOW);
   pinMode(pushbutton,INPUT_PULLUP);
   attachInterrupt(pushbutton,changeread,FALLING);
   
@@ -68,11 +68,12 @@ void setup() {
 
 void loop() 
 {
-  digitalWrite(current_mode,LOW);
-  delay(250);
+  
   
   if(flag == 0) //if flag is 0, display temp in C
   {  
+    digitalWrite(FTempInd,HIGH);
+    delay(150);
     //change_display(1);
     Wire.beginTransmission(thermo_address);
     //Write the command to the thermometer
@@ -91,6 +92,8 @@ void loop()
   }
    if(flag == 1) // If flag is 1, display temp in F
    {
+        digitalWrite(CTempInd,HIGH);
+        delay(150);
         //change_display(1);
         Wire.beginTransmission(thermo_address);
         //Write the command to the thermometer
@@ -142,8 +145,8 @@ void change_display(int disp_value)
   int ones = get_ones(disp_value);
   set_display_pins(a_1,b_1,c_1,d_1,ones);
   set_display_pins(a_2,b_2,c_2,d_2,tens);
-  digitalWrite(current_mode,HIGH);
-  delay(250);
+  digitalWrite(FTempInd,LOW);
+  delay(150);
 }
 
 int get_tens(int value)
